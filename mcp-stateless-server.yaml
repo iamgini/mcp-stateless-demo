@@ -1,0 +1,97 @@
+# MCP Server — STATELESS mode (new 2026-07-28 spec)
+# Same image as stateful, but WITH --stateless flag
+# No initialize needed, no Mcp-Session-Id, any request hits any pod
+#
+# Deploy with 2 replicas + no sessionAffinity to show that
+# requests to different pods WORK perfectly — stateless by design
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-stateless-server
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mcp-stateless-server
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "events", "namespaces", "configmaps", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mcp-stateless-server
+subjects:
+  - kind: ServiceAccount
+    name: mcp-stateless-server
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: mcp-stateless-server
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-stateless-server
+  namespace: default
+  labels:
+    app: mcp-stateless-server
+    demo: mcp-stateless-talk
+    mcp-mode: stateless
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mcp-stateless-server
+  template:
+    metadata:
+      labels:
+        app: mcp-stateless-server
+        mcp-mode: stateless
+    spec:
+      serviceAccountName: mcp-stateless-server
+      containers:
+        - name: mcp
+          image: ghcr.io/containers/kubernetes-mcp-server:latest
+          args:
+            - "--port"
+            - "8080"
+            - "--stateless"
+          ports:
+            - containerPort: 8080
+              name: mcp
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-stateless-svc
+  namespace: default
+  labels:
+    app: mcp-stateless-server
+    demo: mcp-stateless-talk
+spec:
+  selector:
+    app: mcp-stateless-server
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: mcp
+  type: ClusterIP
+  # No sessionAffinity needed — stateless MCP works with any load balancing algorithm

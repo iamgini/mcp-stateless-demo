@@ -1,0 +1,96 @@
+# MCP Server — STATEFUL mode (old spec behavior)
+# Same image as stateless, but WITHOUT --stateless flag
+# Requires initialize handshake, returns Mcp-Session-Id, sessions pinned to pod
+#
+# Deploy with 2 replicas + no sessionAffinity to show that
+# requests to different pods BREAK because sessions are in-memory
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-stateful-server
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mcp-stateful-server
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "events", "namespaces", "configmaps", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mcp-stateful-server
+subjects:
+  - kind: ServiceAccount
+    name: mcp-stateful-server
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: mcp-stateful-server
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-stateful-server
+  namespace: default
+  labels:
+    app: mcp-stateful-server
+    demo: mcp-stateless-talk
+    mcp-mode: stateful
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mcp-stateful-server
+  template:
+    metadata:
+      labels:
+        app: mcp-stateful-server
+        mcp-mode: stateful
+    spec:
+      serviceAccountName: mcp-stateful-server
+      containers:
+        - name: mcp
+          image: ghcr.io/containers/kubernetes-mcp-server:latest
+          args:
+            - "--port"
+            - "8080"
+          ports:
+            - containerPort: 8080
+              name: mcp
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-stateful-svc
+  namespace: default
+  labels:
+    app: mcp-stateful-server
+    demo: mcp-stateless-talk
+spec:
+  selector:
+    app: mcp-stateful-server
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: mcp
+  type: ClusterIP
+  # NO sessionAffinity — this is intentional to show stateful sessions breaking
