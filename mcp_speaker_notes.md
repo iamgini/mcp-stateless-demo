@@ -192,7 +192,7 @@ Verdict:
 This grounds the talk in concrete projects your audience already uses or knows.
 
 **kagent (CNCF Sandbox):**
-> "kagent is how you run AI agents as Kubernetes-native CRDs. The agent's tools are exposed via RemoteMCPServer resources — Kubernetes objects that describe MCP servers running inside your cluster. Show the audience: kubectl get remotemcpservers -n kagent — you'll see kagent-tool-server and kagent-grafana-mcp, both speaking STREAMABLE_HTTP, both ACCEPTED. That's the MCP ecosystem running natively in Kubernetes."
+> "kagent lets you run AI agents as Kubernetes-native CRDs. The agent's tools are MCP servers — defined as RemoteMCPServer resources in your cluster. All speaking stateless Streamable HTTP. No sticky sessions, no session stores. kagent is what happens when you combine Kubernetes operators with stateless MCP — agents that scale like any other microservice."
 
 **Grafana MCP:**
 > "Grafana Labs maintains an official MCP server at github.com/grafana/mcp-grafana. 3,239 GitHub stars. Apache 2.0. Your agents can query dashboards, metrics, and alerts via MCP without writing any custom integration. Just point kagent at the Grafana MCP server."
@@ -234,63 +234,53 @@ Keep this fast — 2 minutes. These are supplementary to the main stateless stor
 
 ## Slide 13 — Live Demo
 
+Refer to `mcp_demo.md` for the full script with exact commands. Summary below.
+
 ### PRE-DEMO CHECKLIST (30 min before going on stage)
-- [ ] kind cluster running: `kubectl cluster-info`
-- [ ] kagent pods running: `kubectl get pods -n kagent`
-- [ ] broken-app deployed and showing ImagePullBackOff: `kubectl get pods -n default`
-- [ ] Port-forward running: `kubectl port-forward -n kagent service/kagent-ui 8082:8080`
-- [ ] Browser open on kagent dashboard, k8s-troubleshooter agent selected
+- [ ] Minikube running: `minikube status`
+- [ ] MCP pods running (4 pods): `kubectl get pods -l app=mcp-stateful-server && kubectl get pods -l app=mcp-stateless-server`
+- [ ] Test the curl commands at least once
 - [ ] Font size large (min 18pt), notifications off, Slack/email closed
 
 ---
 
-### DEMO FLOW
+### DEMO FLOW (5.5 minutes)
 
-**Beat 1 — Terminal: Show the broken pod**
+**Part 1 — Stateful MCP: Watch It Break (3 min)**
 
-```bash
-kubectl get pods -n default
-```
-→ broken-app in ImagePullBackOff
+Show 2+2 replicas, both services with sessionAffinity: None.
+- Beat 1.2: `tools/list` without `initialize` → rejected
+- Beat 1.3: `initialize` → get `Mcp-Session-Id` header back
+- Beat 1.4: `tools/list` with session ID → ~50% fail (wrong pod)
 
-Say:
-> "Before kagent: I'd be running kubectl describe, kubectl logs, googling the error, patching the YAML. 45 minutes minimum at 3am."
+Key line:
+> "Two replicas and it's already broken. Imagine this with HPA scaling to 20 pods."
 
-**Beat 2 — Terminal: Show MCP servers as K8s objects**
+**Part 2 — Stateless MCP: Watch It Work (2 min)**
 
-```bash
-kubectl get agent -n kagent
-kubectl get remotemcpservers -n kagent
-```
+- Beat 2.1: `tools/list` directly → works, no session header in response
+- Beat 2.2: Repeat 3-4 times → 100% success
 
-Point out:
-> "Both MCP servers speak STREAMABLE_HTTP. These are stateless HTTP endpoints since the 2026-07-28 spec. No sticky sessions. No session store. Just plain HTTP behind a Kubernetes Service."
+Key line:
+> "One HTTP POST. No handshake. No session."
 
-**Beat 3 — Browser dashboard: Ask the agent**
+**Part 3 — Punchline (30 sec)**
 
-Type:
-> "Why is broken-app failing in the default namespace?"
+> "Same image. Same tools. One flag. The protocol finally caught up."
 
-Narrate tool calls as they happen:
-> "Calling k8s_get_resources via MCP... calling k8s_get_events via MCP... calling k8s_describe_resource via MCP..."
+---
 
-Expected response: root cause ImagePullBackOff, bad image tag, fix: change to nginx:latest
+### ANTICIPATED Q&A — "Where's the auth?"
 
-**Beat 4 — Browser dashboard: Ask agent to fix it**
+If someone asks about authentication during the demo:
 
-Type:
-> "patch the deployment with nginx:latest"
-
-→ Agent calls k8s_patch_resource → deployment updates → pods go Running.
-
-Closing line:
-> "MCP. Stateless. Cloud native. That's it."
+> "Two layers. The MCP server uses a Kubernetes ServiceAccount for API access — standard RBAC, defined in the YAML. For client-to-server auth, the service is ClusterIP, internal only. In production, you'd put agentgateway in front — it handles auth, rate limiting, and routing at the edge, same way Envoy handles it for HTTP. The 2026 spec also added CIMD for OAuth/OIDC at the protocol level."
 
 ---
 
 ### FALLBACK PLAN
-- **Dashboard 502:** `kubectl port-forward -n kagent service/kagent-ui 8082:8080`
-- **Rate limit error:** switch to gpt-4o-mini via `kubectl patch modelconfig openai-model-config -n kagent --type='json' -p='[{"op":"replace","path":"/spec/model","value":"gpt-4o-mini"}]'`
+- **Curl pod name collision:** `kubectl delete pod mcp-test --force --grace-period=0`
+- **Stateful doesn't reject without session:** Skip to Beat 1.4 (session ID fails on wrong pod)
 - **Cluster dead:** show screenshot from rehearsal — it's a meetup, not production
 
 ---
@@ -299,16 +289,13 @@ Closing line:
 
 Point the audience to the demo repo first — that's where everything lives.
 
-> "All the files I showed today — the Agent CRD, the broken-app deployment, the ModelConfig, the demo script with exact commands — are at github.com/iamgini/agentic-ai-k8s-kagent-demo. Clone it, run it, try it yourself."
+> "All the files I showed today — the MCP server YAMLs, the demo script with exact curl commands — are at github.com/iamgini/mcp-stateless-demo. Clone it, run it on minikube, try it yourself."
 
 For the MCP spec:
 > "The 2026-07-28 release blog is the authoritative source for everything I covered about the stateless transition. modelcontextprotocol.io is the spec home. The AAIF is at lfaidata.foundation."
 
-For kagent:
-> "kagent.dev for docs, github.com/kagent-dev/kagent for the source. It's a CNCF Sandbox project — contributions welcome."
-
-For the broader ecosystem:
-> "agentregistry and agentgateway are both linked there. Grafana MCP is at github.com/grafana/mcp-grafana."
+For the ecosystem:
+> "kagent.dev if you want to run AI agents as Kubernetes CRDs. agentgateway for MCP traffic governance. Grafana MCP at github.com/grafana/mcp-grafana."
 
 **Keep this slide up during Q&A so people can photograph it.**
 
@@ -327,10 +314,9 @@ Then:
 **Keep this slide up throughout Q&A.**
 
 After the talk, point people to:
-- `github.com/iamgini/agentic-ai-k8s-kagent-demo`
+- `github.com/iamgini/mcp-stateless-demo`
 - `techbeatly.com` for articles and follow-up content
 - `linkedin.com/in/gineesh`
-- CNCF Slack: `#kagent` channel
 
 ---
 
@@ -350,7 +336,7 @@ After the talk, point people to:
 | 10 | Trade-offs | 2 min |
 | 11 | CNCF Ecosystem | 3 min |
 | 12 | What's New 2026 | 2 min |
-| 13 | Live Demo | 10 min |
+| 13 | Live Demo | 6 min |
 | 14 | References | 1 min |
 | 15 | Q&A | 5 min |
-| **Total** | | **~47 min** |
+| **Total** | | **~43 min** |

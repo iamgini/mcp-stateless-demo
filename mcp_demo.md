@@ -57,7 +57,7 @@ kubectl get pods -l app=mcp-stateless-server
 ### Step 3 — Pre-pull curl image (avoid slow pull on stage)
 
 ```bash
-minikube ssh -- docker pull curlimages/curl:latest
+minikube ssh -- sudo crictl pull curlimages/curl:latest
 ```
 
 ---
@@ -94,23 +94,21 @@ Say:
 > `--stateless`. Let me show you what happens with each."
 
 ```bash
-kubectl get pods -l app=mcp-stateful-server
-kubectl get pods -l app=mcp-stateless-server
+./demo-scripts/00-show-setup.sh
 ```
 
-Show both have 2 replicas Running.
+<details><summary>Full command</summary>
 
 ```bash
+kubectl get pods -l app=mcp-stateful-server
+kubectl get pods -l app=mcp-stateless-server
 kubectl get svc mcp-stateful-svc mcp-stateless-svc \
   -o custom-columns='NAME:.metadata.name,AFFINITY:.spec.sessionAffinity'
 ```
 
-Expected:
-```
-NAME                AFFINITY
-mcp-stateful-svc    None
-mcp-stateless-svc   None
-```
+</details>
+
+Expected: both have 2 replicas Running, both services show `sessionAffinity: None`.
 
 Say:
 > "Both services have sessionAffinity: None — plain round-robin."
@@ -125,14 +123,22 @@ Say:
 > if I skip it and go straight to tools/list?"
 
 ```bash
+./demo-scripts/01-stateful-no-init.sh
+```
+
+<details><summary>Full command</summary>
+
+```bash
 kubectl run mcp-test --rm -it --restart=Never --image=curlimages/curl -- \
   curl -s -w "\n\nHTTP Status: %{http_code}\n" \
   -X POST \
   -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   http://mcp-stateful-svc:8080/mcp \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
+
+</details>
 
 Expected: error response — server requires initialization first.
 
@@ -148,14 +154,22 @@ Say:
 > "Fine. Let's play by the old rules. Send initialize."
 
 ```bash
+./demo-scripts/02-stateful-initialize.sh
+```
+
+<details><summary>Full command</summary>
+
+```bash
 kubectl run mcp-test --rm -it --restart=Never --image=curlimages/curl -- \
   curl -s -D /dev/stderr \
   -X POST \
   -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   http://mcp-stateful-svc:8080/mcp \
   -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"demo","version":"1.0"}},"id":1}'
 ```
+
+</details>
 
 Point out in the response:
 > "See that header? `Mcp-Session-Id`. The server created a session and
@@ -175,15 +189,23 @@ Say:
 Run this multiple times (replace `SESSION_ID` with the actual value from Beat 1.3):
 
 ```bash
+./demo-scripts/03-stateful-with-session.sh <SESSION_ID>
+```
+
+<details><summary>Full command</summary>
+
+```bash
 kubectl run mcp-test --rm -it --restart=Never --image=curlimages/curl -- \
   curl -s -w "\nHTTP Status: %{http_code}\n" \
   -X POST \
   -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -H "Mcp-Session-Id: SESSION_ID" \
   http://mcp-stateful-svc:8080/mcp \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
 ```
+
+</details>
 
 Expected: roughly 50% succeed (hit the right pod), 50% fail (hit the wrong pod).
 
@@ -209,14 +231,22 @@ Say:
 > the request."
 
 ```bash
+./demo-scripts/04-stateless-tools-list.sh
+```
+
+<details><summary>Full command</summary>
+
+```bash
 kubectl run mcp-test --rm -it --restart=Never --image=curlimages/curl -- \
   curl -s -D /dev/stderr \
   -X POST \
   -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   http://mcp-stateless-svc:8080/mcp \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
+
+</details>
 
 Point out:
 1. **No `Mcp-Session-Id` in the response headers** — no session was created
@@ -234,14 +264,22 @@ Say:
 Run this 3-4 times:
 
 ```bash
+./demo-scripts/05-stateless-repeat.sh
+```
+
+<details><summary>Full command</summary>
+
+```bash
 kubectl run mcp-test --rm -it --restart=Never --image=curlimages/curl -- \
   curl -s -w "\nHTTP Status: %{http_code}\n" \
   -X POST \
   -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   http://mcp-stateless-svc:8080/mcp \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
+
+</details>
 
 Expected: 100% success rate.
 
@@ -307,7 +345,7 @@ Common fix — the image needs `--port 8080` (not `--transport http`).
 
 ```bash
 minikube status
-minikube ssh -- docker images | grep kubernetes-mcp
+minikube ssh -- crictl images | grep kubernetes-mcp
 ```
 
 ---
