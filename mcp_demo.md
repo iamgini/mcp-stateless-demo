@@ -32,48 +32,16 @@ Total demo time: **5-7 minutes**
 
 ## Pre-requisites (one-time setup, not on stage)
 
-Assumes minikube, kubectl, and helm are already installed.
+Assumes minikube and kubectl are already installed.
 
-### Step 1 — Install kagent CLI
-
-```bash
-# Linux (Fedora/Ubuntu/etc.)
-curl https://raw.githubusercontent.com/kagent-dev/kagent/refs/heads/main/scripts/get-kagent | bash
-
-# macOS
-brew install kagent
-```
-
-Verify:
-```bash
-kagent version
-```
-
-### Step 2 — Create the minikube cluster
+### Step 1 — Create the minikube cluster
 
 ```bash
-minikube start --cpus=4 --memory=8192 --driver=kvm2 --kubernetes-version=v1.37.0
+minikube start --cpus=2 --memory=4096 --driver=kvm2
 kubectl cluster-info
 ```
 
-### Step 3 — Install kagent into the cluster
-
-kagent requires a provider env var at install time. Since DeepSeek is OpenAI-compatible,
-use the OpenAI provider and point it at the DeepSeek API:
-
-```bash
-export KAGENT_DEFAULT_MODEL_PROVIDER=openai
-export OPENAI_API_KEY=<your-deepseek-api-key>
-export OPENAI_BASE_URL=https://api.deepseek.com/v1
-kagent install --profile demo
-```
-
-Wait for all pods to be Running:
-```bash
-kubectl get pods -n kagent -w
-```
-
-### Step 4 — Deploy the MCP comparison servers (stateful vs stateless)
+### Step 2 — Deploy the MCP comparison servers (stateful vs stateless)
 
 ```bash
 kubectl apply -f mcp-stateful-server.yaml
@@ -86,7 +54,7 @@ kubectl get pods -l app=mcp-stateful-server
 kubectl get pods -l app=mcp-stateless-server
 ```
 
-### Step 5 — Pre-pull curl image (avoid slow pull on stage)
+### Step 3 — Pre-pull curl image (avoid slow pull on stage)
 
 ```bash
 minikube ssh -- docker pull curlimages/curl:latest
@@ -97,7 +65,6 @@ minikube ssh -- docker pull curlimages/curl:latest
 ## Pre-talk checklist (30 min before going on stage)
 
 - [ ] Minikube running: `minikube status`
-- [ ] kagent pods running: `kubectl get pods -n kagent`
 - [ ] MCP comparison pods running (4 pods): `kubectl get pods -l app=mcp-stateful-server && kubectl get pods -l app=mcp-stateless-server`
 - [ ] Test the curl commands below at least once
 - [ ] Terminal font size large (min 18pt)

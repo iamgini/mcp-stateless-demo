@@ -14,13 +14,12 @@ Stateful MCP breaks on Kubernetes. Stateless MCP just works. Same container imag
 | `mcp_speaker_notes.md` | Slide-by-slide speaker notes for the full talk |
 | `mcp-stateful-server.yaml` | MCP server deployment — stateful mode (old spec, requires initialize/session) |
 | `mcp-stateless-server.yaml` | MCP server deployment — stateless mode (2026-07-28 spec, no session) |
-| `modelconfig-deepseek.yaml` | kagent ModelConfig for DeepSeek API (OpenAI-compatible) |
 
 ## Quick start
 
 ```bash
 # 1. Start minikube
-minikube start --cpus=4 --memory=8192 --driver=kvm2
+minikube start --cpus=2 --memory=4096 --driver=kvm2
 
 # 2. Deploy both MCP servers
 kubectl apply -f mcp-stateful-server.yaml
