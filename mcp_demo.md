@@ -15,7 +15,7 @@ Total demo time: **5-7 minutes**
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  ghcr.io/containers/kubernetes-mcp-server:latest                │
-│  (Red Hat maintained, ~1,500 GitHub stars)                      │
+│  (containers org — community maintained, ~1.8k GitHub stars)     │
 ├────────────────────────────┬────────────────────────────────────┤
 │  mcp-stateful-server       │  mcp-stateless-server              │
 │  2 replicas                │  2 replicas                        │

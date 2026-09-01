@@ -25,7 +25,7 @@ Today's talk is about that change. Not a product pitch. A protocol deep dive —
 
 Walk the audience through the structure quickly — set expectations.
 
-> "We'll start with the problem that MCP was created to solve, then look at how MCP works architecturally, then spend the most time on the stateful-to-stateless transition because that's the heart of today's talk. We'll look at what it means concretely for Kubernetes — load balancing, HPA, rolling updates. Then we'll see it live in a demo. Total time about 35 minutes."
+> "We'll start with the problem that MCP was created to solve, then look at how MCP works architecturally, then spend the most time on the stateful-to-stateless transition because that's the heart of today's talk. We'll look at what it means concretely for Kubernetes — load balancing, HPA, rolling updates. Then we'll see it live in a demo. Total time about 40 minutes."
 
 **Duration: 30 seconds.**
 
@@ -63,8 +63,8 @@ Three primitives — keep this fast:
 - **Resources:** data it can read (files, DB records)
 - **Prompts:** reusable templates
 
-The scale numbers hit hard:
-> "19,831 MCP servers. 97 million downloads a month. TypeScript and Python SDKs have each crossed 1 billion total downloads. This is not a niche protocol."
+The scale numbers hit hard (match what's on the slide):
+> "Over 20,000 MCP servers indexed. 400 million monthly SDK downloads. TypeScript and Python SDKs have each crossed 1 billion total downloads. 247 AAIF member orgs. This is not a niche protocol."
 
 **Duration: 3 minutes.**
 
@@ -285,27 +285,9 @@ If someone asks about authentication during the demo:
 
 ---
 
-## Slide 14 — References & Links
+## Slide 14 — Questions & Feedback
 
-Point the audience to the demo repo first — that's where everything lives.
-
-> "All the files I showed today — the MCP server YAMLs, the demo script with exact curl commands — are at github.com/iamgini/mcp-stateless-demo. Clone it, run it on minikube, try it yourself."
-
-For the MCP spec:
-> "The 2026-07-28 release blog is the authoritative source for everything I covered about the stateless transition. modelcontextprotocol.io is the spec home. The AAIF is at lfaidata.foundation."
-
-For the ecosystem:
-> "kagent.dev if you want to run AI agents as Kubernetes CRDs. agentgateway for MCP traffic governance. Grafana MCP at github.com/grafana/mcp-grafana."
-
-**Keep this slide up during Q&A so people can photograph it.**
-
----
-
-## Slide 15 — Thank You
-
-Keep this simple. Let the silence work.
-
-Optional closing line before going to Q&A:
+Closing line before going to Q&A:
 > "MCP went stateless in July 2026. Your Kubernetes cluster is already ready for it. The question is whether you'll be ready when AI agents start knocking on your services."
 
 Then:
@@ -317,6 +299,22 @@ After the talk, point people to:
 - `github.com/iamgini/mcp-stateless-demo`
 - `techbeatly.com` for articles and follow-up content
 - `linkedin.com/in/gineesh`
+
+---
+
+## Slide 15 — References & Links
+
+Point the audience to the demo repo first — that's where everything lives.
+
+> "All the files I showed today — the MCP server YAMLs, the demo script with exact curl commands — are at github.com/iamgini/mcp-stateless-demo. Clone it, run it on minikube, try it yourself."
+
+For the MCP spec:
+> "The 2026-07-28 release blog is the authoritative source for everything I covered about the stateless transition. modelcontextprotocol.io is the spec home. The AAIF is at lfaidata.foundation."
+
+For the ecosystem:
+> "kagent.dev if you want to run AI agents as Kubernetes CRDs. agentgateway for MCP traffic governance. Grafana MCP at github.com/grafana/mcp-grafana."
+
+**Keep this slide visible — people will want to photograph it.**
 
 ---
 
@@ -337,6 +335,6 @@ After the talk, point people to:
 | 11 | CNCF Ecosystem | 3 min |
 | 12 | What's New 2026 | 2 min |
 | 13 | Live Demo | 6 min |
-| 14 | References | 1 min |
-| 15 | Q&A | 5 min |
+| 14 | Q&A | 5 min |
+| 15 | References | 1 min |
 | **Total** | | **~43 min** |

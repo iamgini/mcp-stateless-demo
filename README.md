@@ -33,7 +33,7 @@ kubectl get pods -l demo=mcp-stateless-talk -w
 
 ## MCP server image
 
-Both deployments use [`ghcr.io/containers/kubernetes-mcp-server`](https://github.com/containers/kubernetes-mcp-server) — a Red Hat maintained Kubernetes MCP server. The `--stateless` flag toggles between stateful (old spec) and stateless (2026-07-28 spec) modes.
+Both deployments use [`ghcr.io/containers/kubernetes-mcp-server`](https://github.com/containers/kubernetes-mcp-server) — a community-maintained Kubernetes MCP server from the `containers` org (same org as Podman/Buildah). The `--stateless` flag toggles between stateful (old spec) and stateless (2026-07-28 spec) modes.
 
 ## Key MCP spec changes (2026-07-28)
 
