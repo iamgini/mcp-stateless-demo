@@ -238,15 +238,16 @@ Refer to `mcp_demo.md` for the full script with exact commands. Summary below.
 
 ### PRE-DEMO CHECKLIST (30 min before going on stage)
 - [ ] Minikube running: `minikube status`
-- [ ] MCP pods running (4 pods): `kubectl get pods -l app=mcp-stateful-server && kubectl get pods -l app=mcp-stateless-server`
-- [ ] Test the curl commands at least once
+- [ ] 6 pods Running: `kubectl get pods -l demo=mcp-stateless-talk`
+- [ ] Run `./demo-scripts/01-stateful-no-init.sh` once to verify
 - [ ] Font size large (min 18pt), notifications off, Slack/email closed
+- [ ] If doing bonus: `claude mcp get k8s-auth` shows Connected
 
 ---
 
-### DEMO FLOW (5.5 minutes)
+### DEMO FLOW (~5 minutes)
 
-**Part 1 — Stateful MCP: Watch It Break (3 min)**
+**Part 1 — Stateful MCP: Watch It Break (2.5 min)**
 
 Show 2+2 replicas, both services with sessionAffinity: None.
 - Beat 1.2: `tools/list` without `initialize` → rejected
@@ -256,7 +257,7 @@ Show 2+2 replicas, both services with sessionAffinity: None.
 Key line:
 > "Two replicas and it's already broken. Imagine this with HPA scaling to 20 pods."
 
-**Part 2 — Stateless MCP: Watch It Work (2 min)**
+**Part 2 — Stateless MCP: Watch It Work (1.5 min)**
 
 - Beat 2.1: `tools/list` directly → works, no session header in response
 - Beat 2.2: Repeat 3-4 times → 100% success
@@ -268,13 +269,17 @@ Key line:
 
 > "Same image. Same tools. One flag. The protocol finally caught up."
 
+**Bonus — Claude Code as MCP Client (if time, 2 min)**
+
+Switch to Claude Code terminal. Ask it to list pods or compare deployments. It discovers 20 K8s tools via MCP and uses them — no kubectl. The auth-enabled server validates an API key header via nginx sidecar.
+
+> "This is what it looks like from an actual AI agent. Claude Code connects to the MCP server, discovers 20 Kubernetes tools, and calls them. No kubectl, no scripts, no custom integration."
+
 ---
 
 ### ANTICIPATED Q&A — "Where's the auth?"
 
-If someone asks about authentication during the demo:
-
-> "Two layers. The MCP server uses a Kubernetes ServiceAccount for API access — standard RBAC, defined in the YAML. For client-to-server auth, the service is ClusterIP, internal only. In production, you'd put agentgateway in front — it handles auth, rate limiting, and routing at the edge, same way Envoy handles it for HTTP. The 2026 spec also added CIMD for OAuth/OIDC at the protocol level."
+> "Two layers. The MCP server uses a Kubernetes ServiceAccount for API access — standard RBAC, defined in the YAML. For client-to-server auth, we have an nginx sidecar that validates an API key header. In production, you'd use agentgateway — auth, rate limiting, and routing at the edge, same pattern as Envoy for HTTP. The 2026 spec also added CIMD for OAuth/OIDC at the protocol level."
 
 ---
 
@@ -329,7 +334,7 @@ For the ecosystem:
 | 10 | Trade-offs | 2 min |
 | 11 | CNCF Ecosystem | 3 min |
 | 12 | What's New 2026 | 2 min |
-| 13 | Live Demo | 6 min |
+| 13 | Live Demo | 5 min |
 | 14 | Q&A | 5 min |
 | 15 | References | 1 min |
-| **Total** | | **~43 min** |
+| **Total** | | **~42 min** |

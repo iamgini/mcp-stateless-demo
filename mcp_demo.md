@@ -1,12 +1,12 @@
 # MCP Goes Stateless — Live Demo Script
 
-## Goal of this demo
+## Goal
 
 Prove one thing: **stateful MCP breaks on Kubernetes, stateless MCP just works.**
 
 Same container image. Same tools. Same Kubernetes Service. One flag difference.
 
-Total demo time: **5-7 minutes**
+Total demo time: **~5 minutes**
 
 ---
 
@@ -22,7 +22,6 @@ Total demo time: **5-7 minutes**
 │  NO --stateless flag       │  WITH --stateless flag             │
 │  Requires initialize       │  Direct tools/list                 │
 │  Returns Mcp-Session-Id    │  No session headers                │
-│  Sessions in-memory/pod    │  No server-side state              │
 │  sessionAffinity: None     │  sessionAffinity: None             │
 │  → BREAKS with round-robin │  → WORKS with round-robin          │
 └────────────────────────────┴────────────────────────────────────┘
@@ -32,49 +31,48 @@ Total demo time: **5-7 minutes**
 
 ## Pre-requisites (one-time setup, not on stage)
 
-Assumes minikube and kubectl are already installed.
-
 ### Step 1 — Create the minikube cluster
 
 ```bash
 minikube start --cpus=2 --memory=4096 --driver=kvm2
-kubectl cluster-info
 ```
 
-### Step 2 — Deploy the MCP comparison servers (stateful vs stateless)
+### Step 2 — Deploy MCP servers
 
 ```bash
 kubectl apply -f mcp-stateful-server.yaml
 kubectl apply -f mcp-stateless-server.yaml
+kubectl apply -f mcp-stateless-auth-server.yaml
 ```
 
-Wait for all 4 pods (2 stateful + 2 stateless):
+Wait for all pods:
+
 ```bash
-kubectl get pods -l app=mcp-stateful-server
-kubectl get pods -l app=mcp-stateless-server
+kubectl get pods -l demo=mcp-stateless-talk
 ```
 
-### Step 3 — Pre-pull curl image (avoid slow pull on stage)
+### Step 3 — Pre-pull curl image
 
 ```bash
 minikube ssh -- sudo crictl pull curlimages/curl:latest
 ```
 
----
+### Step 4 — Set up Claude Code MCP (optional bonus demo)
 
-## Pre-talk checklist (30 min before going on stage)
-
-- [ ] Minikube running: `minikube status`
-- [ ] MCP comparison pods running (4 pods): `kubectl get pods -l app=mcp-stateful-server && kubectl get pods -l app=mcp-stateless-server`
-- [ ] Test the curl commands below at least once
-- [ ] Terminal font size large (min 18pt)
-- [ ] Notifications off, Slack/email closed
+```bash
+./demo-scripts/10-port-forward.sh
+claude mcp add-json k8s-auth '{"type":"http","url":"http://localhost:8083/mcp","headers":{"X-Api-Key":"demo-secret-2026"}}'
+```
 
 ---
 
-## Stage layout
+## Pre-talk checklist (30 min before stage)
 
-Single terminal window, dark theme, large font.
+- [ ] `minikube status` — cluster running
+- [ ] `kubectl get pods -l demo=mcp-stateless-talk` — 6 pods Running (2 stateful + 2 stateless + 2 auth)
+- [ ] Run `./demo-scripts/01-stateful-no-init.sh` once — verify it works
+- [ ] Terminal font size large (min 18pt), notifications off
+- [ ] If doing bonus demo: `claude mcp get k8s-auth` shows Connected
 
 ---
 
@@ -82,16 +80,11 @@ Single terminal window, dark theme, large font.
 
 ---
 
-### PART 1 — Stateful MCP: Watch It Break (3 minutes)
+### PART 1 — Stateful MCP: Watch It Break (2.5 min)
 
----
+#### Beat 1.1 — Show the setup (30 sec)
 
-#### Beat 1.1 — Introduce the setup (30 seconds)
-
-Say:
-> "I have the same MCP server image deployed twice in this cluster.
-> Same code, same tools, same container. The only difference is one flag:
-> `--stateless`. Let me show you what happens with each."
+> "Same MCP server image deployed twice. Same tools, same container. Only difference: one flag."
 
 ```bash
 ./demo-scripts/00-show-setup.sh
@@ -108,19 +101,11 @@ kubectl get svc mcp-stateful-svc mcp-stateless-svc \
 
 </details>
 
-Expected: both have 2 replicas Running, both services show `sessionAffinity: None`.
-
-Say:
 > "Both services have sessionAffinity: None — plain round-robin."
 
----
+#### Beat 1.2 — tools/list without initialize → REJECTED (30 sec)
 
-#### Beat 1.2 — Stateful: tools/list without initialize → REJECTED (30 seconds)
-
-Say:
-> "Let's try the old stateful server first. In the pre-2026 spec, you had
-> to send an initialize request before doing anything else. What happens
-> if I skip it and go straight to tools/list?"
+> "Old spec required initialize first. What if I skip it?"
 
 ```bash
 ./demo-scripts/01-stateful-no-init.sh
@@ -140,18 +125,11 @@ kubectl run mcp-test --rm -it --restart=Never --image=curlimages/curl -- \
 
 </details>
 
-Expected: error response — server requires initialization first.
+> "Rejected. Server says: you haven't initialized a session."
 
-Say:
-> "Rejected. The server says: you haven't initialized a session.
-> In the old spec, every client had to start with a handshake."
+#### Beat 1.3 — initialize → get session ID (30 sec)
 
----
-
-#### Beat 1.3 — Stateful: initialize → get session ID (30 seconds)
-
-Say:
-> "Fine. Let's play by the old rules. Send initialize."
+> "Fine. Let's play by the old rules."
 
 ```bash
 ./demo-scripts/02-stateful-initialize.sh
@@ -171,22 +149,15 @@ kubectl run mcp-test --rm -it --restart=Never --image=curlimages/curl -- \
 
 </details>
 
-Point out in the response:
-> "See that header? `Mcp-Session-Id`. The server created a session and
-> pinned it to this specific pod. Every future request must carry that
-> header — and must hit the same pod."
+> "See that Mcp-Session-Id header? Pinned to one pod. Every future request must carry it."
 
-Note the `Mcp-Session-Id` value from the response headers for the next step.
+Note the session ID for the next step.
 
----
+#### Beat 1.4 — tools/list with session → 50% fail (1 min)
 
-#### Beat 1.4 — Stateful: tools/list with session → works sometimes, fails sometimes (1 minute)
+> "Two pods, round-robin. Session only exists on one."
 
-Say:
-> "Now watch what happens when I send tools/list with the session ID.
-> I have two pods behind round-robin. The session only exists on one pod."
-
-Run this multiple times (replace `SESSION_ID` with the actual value from Beat 1.3):
+Run 2-3 times:
 
 ```bash
 ./demo-scripts/03-stateful-with-session.sh <SESSION_ID>
@@ -207,28 +178,15 @@ kubectl run mcp-test --rm -it --restart=Never --image=curlimages/curl -- \
 
 </details>
 
-Expected: roughly 50% succeed (hit the right pod), 50% fail (hit the wrong pod).
-
-Say:
-> "There it is. Same session ID, same service, but round-robin sends it to
-> different pods. The pod that doesn't have my session rejects the request.
-> This is why the old spec forced you to use sessionAffinity: ClientIP,
-> or run Redis as a shared session store.
-> Two replicas and it's already broken. Imagine this with HPA scaling
-> to 20 pods under load."
+> "Two replicas and it's already broken. Imagine HPA scaling to 20 pods."
 
 ---
 
-### PART 2 — Stateless MCP: Watch It Work (2 minutes)
+### PART 2 — Stateless MCP: Watch It Work (1.5 min)
 
----
+#### Beat 2.1 — tools/list directly → works (1 min)
 
-#### Beat 2.1 — Stateless: tools/list directly → works immediately (1 minute)
-
-Say:
-> "Now the same image, same tools — but with the `--stateless` flag.
-> This is the 2026-07-28 spec. No initialize. No session. Just send
-> the request."
+> "Same image, same tools, but with `--stateless`. No initialize. Just send the request."
 
 ```bash
 ./demo-scripts/04-stateless-tools-list.sh
@@ -248,20 +206,11 @@ kubectl run mcp-test --rm -it --restart=Never --image=curlimages/curl -- \
 
 </details>
 
-Point out:
-1. **No `Mcp-Session-Id` in the response headers** — no session was created
-2. **No `initialize` needed** — we went straight to `tools/list`
-3. **Got a full tool list back** — it just works
+> "No Mcp-Session-Id in response. No initialize needed. It just works."
 
-Say:
-> "One HTTP POST. No handshake. No session. The server doesn't know or
-> care which pod handled the last request."
+#### Beat 2.2 — Repeat → 100% success (30 sec)
 
----
-
-#### Beat 2.2 — Stateless: repeat it — works every single time (30 seconds)
-
-Run this 3-4 times:
+Run 3-4 times:
 
 ```bash
 ./demo-scripts/05-stateless-repeat.sh
@@ -281,72 +230,127 @@ kubectl run mcp-test --rm -it --restart=Never --image=curlimages/curl -- \
 
 </details>
 
-Expected: 100% success rate.
-
-Say:
-> "Every request succeeds. Round-robin, random, least-connections —
-> any load balancing algorithm works. No session affinity needed.
-> This is what SEP-2575 and SEP-2567 gave us."
+> "100% success. Any load balancing algorithm works. That's SEP-2575 and SEP-2567."
 
 ---
 
-### PART 3 — The Punchline (30 seconds)
+### PART 3 — Punchline (30 sec)
 
-Say:
-> "Same image. Same tools. Same two replicas. Same Service with no
-> session affinity. The only difference: one flag.
-> The stateful server broke 50% of the time. The stateless server
-> worked 100% of the time.
-> That's the entire 2026-07-28 spec change in one demo."
-
-Pause. Let it land.
-
-> "MCP servers now deploy like any other Kubernetes microservice.
-> No sticky sessions. No Redis sidecars. No HPA headaches.
-> Your cluster was always ready. The protocol finally caught up."
+> "Same image. Same tools. Same two replicas. Same Service with no session affinity. One flag.
+> Stateful broke 50%. Stateless worked 100%.
+> MCP servers now deploy like any other Kubernetes microservice."
 
 ---
 
-## Cleanup after demo
+## BONUS: Claude Code as MCP Client (if time permits, ~2 min)
+
+> "Let me show you what this looks like from an actual AI agent."
+
+Switch to a terminal with Claude Code already connected to the auth-enabled MCP server.
+
+```
+List all pods in the default namespace
+```
+
+Claude Code discovers 20 K8s tools via MCP and calls them — no kubectl, no scripts.
+
+Then:
+
+```
+Compare the mcp-stateful-server and mcp-stateless-server deployments. What's different?
+```
+
+Claude Code makes multiple MCP tool calls, compares results, and explains the `--stateless` flag.
+
+### Setup (done before the talk)
 
 ```bash
+# Port-forward the auth-enabled MCP server
+./demo-scripts/10-port-forward.sh
+
+# Add to Claude Code with API key auth
+claude mcp add-json k8s-auth '{"type":"http","url":"http://localhost:8083/mcp","headers":{"X-Api-Key":"demo-secret-2026"}}'
+
+# Verify
+claude mcp get k8s-auth
+```
+
+### Auth architecture
+
+```
+Claude Code                    nginx sidecar              MCP server          K8s API
+    │                              │                          │                  │
+    │── POST /mcp ────────────────→│                          │                  │
+    │   X-Api-Key: demo-secret-2026│                          │                  │
+    │                              │── validates key ──→ OK   │                  │
+    │                              │── proxy_pass ───────────→│                  │
+    │                              │                          │── SA token ─────→│
+    │                              │                          │←── pods list ────│
+    │                              │←─── tools/list result ──│                  │
+    │←──── SSE response ──────────│                          │                  │
+```
+
+Two auth boundaries:
+1. **Claude Code → MCP server:** API key via `X-Api-Key` header, validated by nginx sidecar. In production: agentgateway with OAuth/OIDC (CIMD in 2026 spec)
+2. **MCP server → K8s API:** ServiceAccount token, scoped via ClusterRole (read-only)
+
+### Test auth from curl
+
+```bash
+# Without key — 401
+curl -s -X POST \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  http://localhost:8083/mcp \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+
+# With key — 200 + 20 tools
+curl -s -X POST \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "X-Api-Key: demo-secret-2026" \
+  http://localhost:8083/mcp \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}' \
+  | sed -n 's/^data: //p' | jq '.result.tools | length'
+```
+
+### Production auth pattern
+
+```
+┌──────────────┐      HTTPS + OAuth      ┌────────────────┐      ClusterIP      ┌──────────────┐
+│  Claude Code  │ ─────────────────────→ │  agentgateway   │ ─────────────────→ │  MCP Server   │
+│  (external)   │   CIMD / OIDC token    │  (edge proxy)   │   (internal only)  │  (stateless)  │
+└──────────────┘                         │  - auth          │                    │  - SA + RBAC  │
+                                         │  - rate limiting │                    └──────────────┘
+                                         │  - per-tool ACL  │
+                                         │  - OTel tracing  │
+                                         └────────────────┘
+```
+
+---
+
+## Cleanup
+
+```bash
+# Remove MCP servers from Claude Code + kill port-forwards
+./demo-scripts/11-cleanup.sh
+
+# Delete K8s resources (optional)
 kubectl delete -f mcp-stateful-server.yaml
 kubectl delete -f mcp-stateless-server.yaml
+kubectl delete -f mcp-stateless-auth-server.yaml
 ```
 
 ---
 
 ## Fallback plans
 
-### Curl pod name collision
-
-```bash
-kubectl delete pod mcp-test --force --grace-period=0 2>/dev/null
-```
-
-Then retry the curl command.
-
-### Stateful server doesn't reject tools/list without session
-
-Some SDK versions auto-create sessions. In that case, skip Beat 1.2 and focus on
-Beat 1.4 (session ID not recognized by the other pod). The scaling failure is the
-stronger demo point anyway.
-
-### MCP server pods won't start
-
-Check logs:
-```bash
-kubectl logs -l app=mcp-stateful-server --tail=10
-```
-
-Common fix — the image needs `--port 8080` (not `--transport http`).
-
-### Minikube issues
-
-```bash
-minikube status
-minikube ssh -- crictl images | grep kubernetes-mcp
-```
+| Problem | Fix |
+|---|---|
+| Curl pod name collision | `kubectl delete pod mcp-test --force --grace-period=0` |
+| Stateful doesn't reject without session | Skip to Beat 1.4 — session ID fails on wrong pod |
+| MCP pods won't start | `kubectl logs -l app=mcp-stateful-server --tail=10` |
+| Cluster dead | Show screenshot from rehearsal |
 
 ---
 
@@ -354,10 +358,10 @@ minikube ssh -- crictl images | grep kubernetes-mcp
 
 | Feature | What to say |
 |---|---|
-| kagent | "kagent is a CNCF Sandbox project that runs AI agents as Kubernetes CRDs. It uses stateless MCP under the hood — the same protocol you just saw." |
-| W3C Trace Context | "The 2026 spec puts W3C trace context in every request. With Jaeger or Tempo, you get distributed tracing across the agent graph for free." |
-| Mcp-Method / Mcp-Name headers | "In production, put agentgateway in front and route on these headers. Any L7 load balancer can do method-based routing now." |
-| Tasks extension | "What about a 5-minute deployment rollout? The Tasks extension gives you async polling — tasks/get to check status." |
+| kagent | "CNCF Sandbox project — runs AI agents as K8s CRDs, uses stateless MCP under the hood." |
+| W3C Trace Context | "2026 spec puts trace context in every request. Jaeger/Tempo gives you distributed tracing for free." |
+| Mcp-Method / Mcp-Name | "In production, route on these headers at the gateway. Any L7 load balancer works." |
+| Tasks extension | "5-minute deployment rollout? Tasks extension gives you async polling — tasks/get to check status." |
 
 ---
 
@@ -365,28 +369,35 @@ minikube ssh -- crictl images | grep kubernetes-mcp
 
 | Part | Content | Duration |
 |---|---|---|
-| 1 | **Stateful breaks** — initialize, session ID, 50% failure | 3 min |
-| 2 | **Stateless works** — direct tools/list, 100% success | 2 min |
-| 3 | **Punchline** — same image, one flag, protocol caught up | 0.5 min |
-| **Total** | | **~5.5 min** |
+| 1 | **Stateful breaks** — setup, init, session, 50% failure | 2.5 min |
+| 2 | **Stateless works** — direct tools/list, 100% success | 1.5 min |
+| 3 | **Punchline** — same image, one flag | 0.5 min |
+| Bonus | **Claude Code** — AI agent using MCP (if time) | 2 min |
+| **Core total** | | **~4.5 min** |
 
 ---
 
-## Quick reference — key commands
+## Quick reference
 
 ```bash
-# Minikube status
+# Cluster
 minikube status
 
-# MCP server pods
-kubectl get pods -l app=mcp-stateful-server
-kubectl get pods -l app=mcp-stateless-server
+# Pods
+kubectl get pods -l demo=mcp-stateless-talk
 
-# Session affinity check
-kubectl get svc mcp-stateful-svc mcp-stateless-svc \
+# Session affinity
+kubectl get svc mcp-stateful-svc mcp-stateless-svc mcp-auth-svc \
   -o custom-columns='NAME:.metadata.name,AFFINITY:.spec.sessionAffinity'
 
+# Port-forwards
+./demo-scripts/10-port-forward.sh
+
+# Claude Code MCP
+claude mcp add-json k8s-auth '{"type":"http","url":"http://localhost:8083/mcp","headers":{"X-Api-Key":"demo-secret-2026"}}'
+claude mcp get k8s-auth
+claude mcp remove k8s-auth
+
 # Cleanup
-kubectl delete -f mcp-stateful-server.yaml
-kubectl delete -f mcp-stateless-server.yaml
+./demo-scripts/11-cleanup.sh
 ```

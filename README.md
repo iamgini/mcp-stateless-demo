@@ -15,7 +15,6 @@ Stateful MCP breaks on Kubernetes. Stateless MCP just works. Same container imag
 | `mcp-stateful-server.yaml` | MCP server deployment — stateful mode (old spec, requires initialize/session) |
 | `mcp-stateless-server.yaml` | MCP server deployment — stateless mode (2026-07-28 spec, no session) |
 | `mcp-stateless-auth-server.yaml` | MCP server with nginx auth sidecar — validates X-Api-Key header |
-| `claude-code-mcp-demo.md` | Claude Code as MCP client — port-forward setup, sample prompts, auth flow |
 
 ## Quick start
 
@@ -23,11 +22,12 @@ Stateful MCP breaks on Kubernetes. Stateless MCP just works. Same container imag
 # 1. Start minikube
 minikube start --cpus=2 --memory=4096 --driver=kvm2
 
-# 2. Deploy both MCP servers
+# 2. Deploy MCP servers
 kubectl apply -f mcp-stateful-server.yaml
 kubectl apply -f mcp-stateless-server.yaml
+kubectl apply -f mcp-stateless-auth-server.yaml
 
-# 3. Wait for pods
+# 3. Wait for pods (6 total: 2 stateful + 2 stateless + 2 auth)
 kubectl get pods -l demo=mcp-stateless-talk -w
 
 # 4. Run the demo (see mcp_demo.md for full script)
