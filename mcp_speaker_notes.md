@@ -8,7 +8,7 @@
 
 > "Quick show of hands — how many of you have heard of MCP? How many have built something with it?"
 
-MCP is already in Claude, Cursor, VS Code, kagent. But most people don't know what changed in July 2026, and why it matters for Kubernetes. Today: a protocol deep dive with a live demo.
+MCP is already in Claude, Cursor, VS Code, kagent. But most people don't know what changed in July 2026, and why it matters for Kubernetes.
 
 ---
 
