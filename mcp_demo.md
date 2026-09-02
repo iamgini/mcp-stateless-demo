@@ -34,7 +34,7 @@ Total demo time: **~5 minutes**
 ### Step 1 — Create the minikube cluster
 
 ```bash
-minikube start --cpus=2 --memory=4096 --driver=kvm2
+minikube start --cpus=2 --memory=4096 --driver=kvm2 --kubernetes-version=v1.37.0
 ```
 
 ### Step 2 — Deploy MCP servers

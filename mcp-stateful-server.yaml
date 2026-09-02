@@ -57,6 +57,7 @@ spec:
     metadata:
       labels:
         app: mcp-stateful-server
+        demo: mcp-stateless-talk
         mcp-mode: stateful
     spec:
       serviceAccountName: mcp-stateful-server
