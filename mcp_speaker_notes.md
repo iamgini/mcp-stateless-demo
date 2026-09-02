@@ -42,9 +42,9 @@ Timeline:
 - **Jul 2026:** Spec 2026-07-28 — goes stateless
 
 Three primitives:
-- **Tools:** functions the agent can call (like k8s_get_pods)
+- **Tools:** functions the agent can call - k8s_get_pods, k8s_get_events, k8s_patch_resource (Kubernetes MCP server)
 - **Resources:** data it can read (files, DB records)
-- **Prompts:** reusable templates
+- **Prompts:** reusable templates (Triage this failing pod, Review this Helm chart for security etc)
 
 > "Over 20,000 MCP servers indexed. 400 million monthly SDK downloads. 1 billion+ TypeScript and Python downloads. 247 AAIF member orgs. This is not a niche protocol."
 
