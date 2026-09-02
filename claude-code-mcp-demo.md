@@ -212,9 +212,7 @@ curl -s -X POST \
 ### Connect Claude Code with auth
 
 ```bash
-claude mcp add --transport http \
-  --header "X-Api-Key: demo-secret-2026" \
-  k8s-auth http://localhost:8083/mcp
+claude mcp add-json k8s-auth '{"type":"http","url":"http://localhost:8083/mcp","headers":{"X-Api-Key":"demo-secret-2026"}}'
 ```
 
 Claude Code sends the `X-Api-Key` header on every MCP request. Nginx validates it and proxies to the MCP server. Without the header or with a wrong key, you get a clean JSON-RPC 401 error.
