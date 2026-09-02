@@ -285,9 +285,21 @@ If someone asks about authentication during the demo:
 
 ---
 
-## Slide 14 — References & Links
+## Slide 14 — Questions & Feedback
 
-Point the audience to the demo repo first — that's where everything lives.
+Closing line before going to Q&A:
+> "MCP went stateless in July 2026. Your Kubernetes cluster is already ready for it. The question is whether you'll be ready when AI agents start knocking on your services."
+
+Then:
+> "Happy to take questions. My contact details are right here on screen."
+
+**Keep this slide up throughout Q&A.** The slide has contact links (LinkedIn, gineesh.com, techbeatly.com, t.me/techbeatly) so people can photograph it while asking questions.
+
+---
+
+## Slide 15 — References & Links
+
+Switch to this slide after Q&A winds down, or when someone asks for links.
 
 > "All the files I showed today — the MCP server YAMLs, the demo script with exact curl commands — are at github.com/iamgini/mcp-stateless-demo. Clone it, run it on minikube, try it yourself."
 
@@ -297,24 +309,7 @@ For the MCP spec:
 For the ecosystem:
 > "kagent.dev if you want to run AI agents as Kubernetes CRDs. agentgateway for MCP traffic governance. Grafana MCP at github.com/grafana/mcp-grafana."
 
-**Keep this slide visible — people will want to photograph it.**
-
----
-
-## Slide 15 — Questions & Feedback
-
-Closing line before going to Q&A:
-> "MCP went stateless in July 2026. Your Kubernetes cluster is already ready for it. The question is whether you'll be ready when AI agents start knocking on your services."
-
-Then:
-> "Happy to take questions."
-
-**Keep this slide up throughout Q&A.**
-
-After the talk, point people to:
-- `github.com/iamgini/mcp-stateless-demo`
-- `techbeatly.com` for articles and follow-up content
-- `linkedin.com/in/gineesh`
+**Keep this slide visible at the end — people will want to photograph it.**
 
 ---
 
@@ -335,6 +330,6 @@ After the talk, point people to:
 | 11 | CNCF Ecosystem | 3 min |
 | 12 | What's New 2026 | 2 min |
 | 13 | Live Demo | 6 min |
-| 14 | References | 1 min |
-| 15 | Q&A | 5 min |
+| 14 | Q&A | 5 min |
+| 15 | References | 1 min |
 | **Total** | | **~43 min** |

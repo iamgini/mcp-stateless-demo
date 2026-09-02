@@ -25,6 +25,7 @@ Create a 15-slide presentation in Google Slides for a CNCF meetup talk. The talk
 - No clip art. Minimal icons only where they add clarity.
 - Large readable fonts — this will be projected in a conference room
 - The demo slide (13) and Q&A slide (14) can use illustration-style visuals
+- Q&A slide (14) should include speaker contact links
 - References slide (15) should have a light blue background for visibility/photographing
 
 ### Slide-by-Slide Content
@@ -71,8 +72,7 @@ Create a 15-slide presentation in Google Slides for a CNCF meetup talk. The talk
   - Stateful vs Stateless Tradeoffs
   - MCP in the CNCF Ecosystem
   - What's New in MCP 2026
-  - Live Demo
-  - Q&A
+  - Demo and Q&A
 
 ---
 
@@ -210,7 +210,19 @@ Create a 15-slide presentation in Google Slides for a CNCF meetup talk. The talk
 
 ---
 
-#### Slide 14 — References & Links
+#### Slide 14 — Questions & Feedback
+- Large heading: "Questions & Feedback"
+- Light green/mint background
+- Illustration: diverse group of people with thought bubbles containing question marks
+- Contact links on the left side:
+  - linkedin.com/in/gineesh
+  - gineesh.com
+  - techbeatly.com
+  - t.me/techbeatly
+
+---
+
+#### Slide 15 — References & Links
 - Light blue background for easy photographing
 - 4 reference cards in 2x2 grid:
   - **MCP:**
@@ -228,13 +240,6 @@ Create a 15-slide presentation in Google Slides for a CNCF meetup talk. The talk
     - Demo: github.com/iamgini/mcp-stateless-demo
     - techbeatly.com
     - gineesh.com
-
----
-
-#### Slide 15 — Questions & Feedback
-- Large heading: "Questions & Feedback"
-- Lavender/purple background
-- Illustration: diverse group of people with thought bubbles containing question marks
 
 ---
 
