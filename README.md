@@ -14,6 +14,8 @@ Stateful MCP breaks on Kubernetes. Stateless MCP just works. Same container imag
 | `mcp_speaker_notes.md` | Slide-by-slide speaker notes for the full talk |
 | `mcp-stateful-server.yaml` | MCP server deployment — stateful mode (old spec, requires initialize/session) |
 | `mcp-stateless-server.yaml` | MCP server deployment — stateless mode (2026-07-28 spec, no session) |
+| `mcp-stateless-auth-server.yaml` | MCP server with nginx auth sidecar — validates X-Api-Key header |
+| `claude-code-mcp-demo.md` | Claude Code as MCP client — port-forward setup, sample prompts, auth flow |
 
 ## Quick start
 

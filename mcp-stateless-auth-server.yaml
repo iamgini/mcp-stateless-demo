@@ -1,0 +1,142 @@
+# MCP Server — STATELESS with API key auth via nginx sidecar
+# Demonstrates: Claude Code → nginx (validates X-Api-Key) → MCP server → K8s API
+#
+# The MCP server itself has no auth. Nginx acts as the auth proxy —
+# same pattern as agentgateway but simpler for demos.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-auth-nginx
+  namespace: default
+data:
+  default.conf: |
+    server {
+      listen 9080;
+
+      location /mcp {
+        if ($http_x_api_key != "demo-secret-2026") {
+          add_header Content-Type application/json always;
+          return 401 '{"jsonrpc":"2.0","error":{"code":-32001,"message":"Unauthorized: invalid or missing X-Api-Key header"},"id":null}';
+        }
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host localhost;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+      }
+
+      location /health {
+        return 200 'ok';
+      }
+    }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-auth-server
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mcp-auth-server
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "events", "namespaces", "configmaps", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mcp-auth-server
+subjects:
+  - kind: ServiceAccount
+    name: mcp-auth-server
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: mcp-auth-server
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-auth-server
+  namespace: default
+  labels:
+    app: mcp-auth-server
+    demo: mcp-stateless-talk
+    mcp-mode: stateless-auth
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mcp-auth-server
+  template:
+    metadata:
+      labels:
+        app: mcp-auth-server
+        mcp-mode: stateless-auth
+    spec:
+      serviceAccountName: mcp-auth-server
+      containers:
+        - name: mcp
+          image: ghcr.io/containers/kubernetes-mcp-server:latest
+          args:
+            - "--port"
+            - "8080"
+            - "--stateless"
+          ports:
+            - containerPort: 8080
+              name: mcp
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+        - name: auth-proxy
+          image: nginx:alpine
+          ports:
+            - containerPort: 9080
+              name: auth-mcp
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d/
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "5m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: mcp-auth-nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-auth-svc
+  namespace: default
+  labels:
+    app: mcp-auth-server
+    demo: mcp-stateless-talk
+spec:
+  selector:
+    app: mcp-auth-server
+  ports:
+    - port: 9080
+      targetPort: 9080
+      name: auth-mcp
+  type: ClusterIP
